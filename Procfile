@@ -1,0 +1,1 @@
+web: gunicorn sentiment_predictor:app --timeout 120 --workers 2

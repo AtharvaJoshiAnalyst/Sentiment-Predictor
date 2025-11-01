@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentiment Predictor</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Animated word background */
+        .word-background {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.1;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .word {
+            position: absolute;
+            font-size: 18px;
+            color: white;
+            font-weight: 300;
+            white-space: nowrap;
+            animation: float 20s infinite linear;
+        }
+
+        @keyframes float {
+            0% {
+                transform: translateY(100vh) rotate(0deg);
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+            }
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .logo {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 14px;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+        }
+
+        h1 {
+            font-size: 32px;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+        }
+
+        .input-container {
+            margin-bottom: 24px;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 32px;
+        }
+
+        button {
+            flex: 1;
+            padding: 14px 24px;
+            font-size: 16px;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .analyze-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .analyze-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .analyze-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .clear-btn {
+            background: #f5f5f5;
+            color: #666;
+        }
+
+        .clear-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .results {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 16px;
+            transition: transform 0.3s ease;
+        }
+
+        .result-card:hover {
+            transform: translateX(4px);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .model-name {
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 18px;
+        }
+
+        .sentiment-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .positive {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .negative {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .neutral {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            display: none;
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="word-background" id="wordBg"></div>
+    
+    <div class="container">
+        <div class="header">
+            <div class="logo">🎭</div>
+            <h1>Sentiment Predictor</h1>
+            <p class="subtitle">Analyze text sentiment using advanced AI models</p>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <div class="input-container">
+            <textarea 
+                id="textInput" 
+                placeholder="Enter your text here to analyze its sentiment...&#10;&#10;Try something like: 'I absolutely love this product!' or 'This is the worst experience ever.'"
+            ></textarea>
+        </div>
+
+        <div class="button-container">
+            <button class="analyze-btn" id="analyzeBtn" onclick="analyzeSentiment()">
+                Analyze Sentiment
+            </button>
+            <button class="clear-btn" onclick="clearAll()">
+                Clear
+            </button>
+        </div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>Analyzing sentiment...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="model-name">TextBlob</span>
+                    <span class="sentiment-badge" id="textblobResult">-</span>
+                </div>
+                <p style="color: #666; font-size: 14px;">Statistical pattern-based analysis</p>
+            </div>
+
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="model-name">VADER</span>
+                    <span class="sentiment-badge" id="vaderResult">-</span>
+                </div>
+                <p style="color: #666; font-size: 14px;">Social media optimized sentiment</p>
+            </div>
+
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="model-name">BERT (Transformer)</span>
+                    <span class="sentiment-badge" id="bertResult">-</span>
+                </div>
+                <p style="color: #666; font-size: 14px;">Deep learning neural network</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Create animated word background
+        const words = [
+            'amazing', 'terrible', 'love', 'hate', 'wonderful', 'awful', 'excellent', 'disappointing',
+            'fantastic', 'horrible', 'brilliant', 'sad', 'happy', 'angry', 'joyful', 'miserable',
+            'excited', 'frustrated', 'delighted', 'upset', 'thrilled', 'annoyed', 'pleased', 'irritated',
+            'cheerful', 'gloomy', 'optimistic', 'pessimistic', 'positive', 'negative', 'neutral'
+        ];
+
+        const wordBg = document.getElementById('wordBg');
+        for (let i = 0; i < 30; i++) {
+            const word = document.createElement('div');
+            word.className = 'word';
+            word.textContent = words[Math.floor(Math.random() * words.length)];
+            word.style.left = Math.random() * 100 + '%';
+            word.style.animationDelay = Math.random() * 20 + 's';
+            word.style.animationDuration = (15 + Math.random() * 10) + 's';
+            wordBg.appendChild(word);
+        }
+
+        async function analyzeSentiment() {
+            const text = document.getElementById('textInput').value.trim();
+            const analyzeBtn = document.getElementById('analyzeBtn');
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const error = document.getElementById('error');
+
+            error.style.display = 'none';
+
+            if (!text) {
+                error.textContent = 'Please enter some text to analyze.';
+                error.style.display = 'block';
+                return;
+            }
+
+            analyzeBtn.disabled = true;
+            loading.style.display = 'block';
+            results.style.display = 'none';
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'text=' + encodeURIComponent(text)
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                // Update results
+                updateSentimentBadge('textblobResult', data.textblob_sentiment);
+                updateSentimentBadge('vaderResult', data.vader_sentiment);
+                updateSentimentBadge('bertResult', data.bert_sentiment);
+
+                results.style.display = 'block';
+            } catch (err) {
+                error.textContent = 'Error: ' + err.message;
+                error.style.display = 'block';
+            } finally {
+                loading.style.display = 'none';
+                analyzeBtn.disabled = false;
+            }
+        }
+
+        function updateSentimentBadge(elementId, sentiment) {
+            const badge = document.getElementById(elementId);
+            badge.textContent = sentiment;
+            badge.className = 'sentiment-badge ' + sentiment.toLowerCase();
+        }
+
+        function clearAll() {
+            document.getElementById('textInput').value = '';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+        }
+
+        // Allow Enter key to submit (Ctrl/Cmd + Enter)
+        document.getElementById('textInput').addEventListener('keydown', function(e) {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                analyzeSentiment();
+            }
+        });
+    </script>
+</body>
+</html>
